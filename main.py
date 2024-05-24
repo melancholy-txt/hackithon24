@@ -1,47 +1,39 @@
-import paho.mqtt.client as mqtt
-import ssl
 import os
+import ssl
+import paho.mqtt.client as mqtt
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.declarative import declarative_base
 from dotenv import load_dotenv
-from apscheduler.schedulers.background import BackgroundScheduler
+from sqlalchemy import Column, Integer, TIMESTAMP, String
+from datetime import datetime
 
+Base = declarative_base()
 load_dotenv()
 
-messages = 0
-troughput = 0
 
-messages_per_minute = 0
-troughput_per_minute = 0
+class Message(Base):
+    __tablename__ = "messages"
 
-
-def every_second():
-    global messages, troughput, messages_per_minute, troughput_per_minute
-    print(f"Zprav za sekundu: {messages}, Datovy tok: {troughput} B/s")
-    messages_per_minute += messages
-    troughput_per_minute += troughput
-    messages = 0
-    troughput = 0
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    date = Column(TIMESTAMP, default=datetime.utcnow)
+    size = Column(Integer)
+    topic = Column(String(255))
 
 
-def every_minute():
-    global messages_per_minute, troughput_per_minute
-    print()
-    print(f"Zprav za minutu: {messages_per_minute}, Datovy tok: {
-          int(troughput_per_minute / 1024)} kB,")
-    print()
-    messages_per_minute = 0
-    troughput_per_minute = 0
+# Database connection setup
+maria_user = os.getenv("maria_user")
+maria_password = os.getenv("maria_password")
+db_host = os.getenv("db_host")
+db_port = os.getenv("db_port")
 
+DATABASE_URL = f"mysql+pymysql://{maria_user}:{
+    maria_password}@{db_host}:{db_port}/h24"
 
-scheduler = BackgroundScheduler()
-scheduler.add_job(every_second, 'interval', seconds=1)
-scheduler.add_job(every_minute, 'interval', minutes=1)
-scheduler.start()
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-
-broker_address = "mqtt.portabo.cz"
-port = 8883
-mqtt_user = os.getenv("mqtt_user")
-mqtt_password = os.getenv("mqtt_password")
+Base.metadata.create_all(bind=engine)
 
 
 def on_connect(client, userdata, flags, rc):
@@ -50,12 +42,29 @@ def on_connect(client, userdata, flags, rc):
 
 
 def on_message(client, userdata, msg):
-    global messages, troughput
-    messages += 1
-    troughput += len(msg.payload)
+    session = SessionLocal()
+    try:
+        # Create a new message instance
+        message = Message(
+            date=datetime.utcnow(),
+            size=len(msg.payload),
+            topic=msg.topic
+        )
+        session.add(message)
+        session.commit()
+        # print(f"Message added to DB: {message}")
+    except Exception as e:
+        session.rollback()
+        print(f"Failed to add message to DB: {e}")
+    finally:
+        session.close()
 
-    # print(f"Message received: Topic: {msg.topic}")
 
+broker_address = "mqtt.portabo.cz"
+port = 8883
+mqtt_user = os.getenv("mqtt_user")
+mqtt_password = os.getenv("mqtt_password")
+print(mqtt_user, mqtt_password)
 
 client = mqtt.Client()
 client.username_pw_set(mqtt_user, mqtt_password)
@@ -68,7 +77,5 @@ ssl_ctx.verify_mode = ssl.CERT_NONE
 client.tls_set_context(ssl_ctx)
 client.tls_insecure_set(True)
 
-
 client.connect(broker_address, port, 60)
-
 client.loop_forever()
