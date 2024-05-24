@@ -26,7 +26,7 @@ def every_minute():
     global messages_per_minute, troughput_per_minute
     print()
     print(f"Zprav za minutu: {messages_per_minute}, Datovy tok: {
-          troughput_per_minute / 1024} kB/s,")
+          int(troughput_per_minute / 1024)} kB,")
     print()
     messages_per_minute = 0
     troughput_per_minute = 0
