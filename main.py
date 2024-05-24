@@ -27,8 +27,8 @@ maria_password = os.getenv("maria_password")
 db_host = os.getenv("db_host")
 db_port = os.getenv("db_port")
 
-DATABASE_URL = f"mysql+pymysql://{maria_user}:{
-    maria_password}@{db_host}:{db_port}/h24"
+DATABASE_URL = f"""mysql+pymysql://{maria_user}:{
+    maria_password}@{db_host}:{db_port}/h24"""
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
