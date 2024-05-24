@@ -1,2 +1,5 @@
+greenlet==3.0.3
 paho-mqtt==2.1.0
 python-dotenv==1.0.1
+SQLAlchemy==2.0.30
+typing_extensions==4.12.0
