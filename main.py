@@ -2,8 +2,40 @@ import paho.mqtt.client as mqtt
 import ssl
 import os
 from dotenv import load_dotenv
+from apscheduler.schedulers.background import BackgroundScheduler
 
 load_dotenv()
+
+messages = 0
+troughput = 0
+
+messages_per_minute = 0
+troughput_per_minute = 0
+
+
+def every_second():
+    global messages, troughput, messages_per_minute, troughput_per_minute
+    print(f"Zprav za sekundu: {messages}, Datovy tok: {troughput} B/s")
+    messages_per_minute += messages
+    troughput_per_minute += troughput
+    messages = 0
+    troughput = 0
+
+
+def every_minute():
+    global messages_per_minute, troughput_per_minute
+    print()
+    print(f"Zprav za minutu: {messages_per_minute}, Datovy tok: {
+          troughput_per_minute / 1024} kB/s,")
+    print()
+    messages_per_minute = 0
+    troughput_per_minute = 0
+
+
+scheduler = BackgroundScheduler()
+scheduler.add_job(every_second, 'interval', seconds=1)
+scheduler.add_job(every_minute, 'interval', minutes=1)
+scheduler.start()
 
 
 broker_address = "mqtt.portabo.cz"
@@ -18,7 +50,11 @@ def on_connect(client, userdata, flags, rc):
 
 
 def on_message(client, userdata, msg):
-    print(f"Message received: Topic: {msg.topic}")
+    global messages, troughput
+    messages += 1
+    troughput += len(msg.payload)
+
+    # print(f"Message received: Topic: {msg.topic}")
 
 
 client = mqtt.Client()
