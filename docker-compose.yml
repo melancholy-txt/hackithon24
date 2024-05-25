@@ -1,0 +1,25 @@
+services:
+
+  db:
+    image: mariadb
+    restart: always
+    ports:
+      - 8800:3306
+    volumes:
+      - ./mariadb_data:/var/lib/mysql
+    environment:
+      MARIADB_ROOT_PASSWORD: superTajnyHeslo
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8801:8080
+
+  scraper:
+    build: .
+    depends_on:
+      - db
+    env_file:
+      - .env
+    restart: unless-stopped
