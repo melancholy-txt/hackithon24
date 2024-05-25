@@ -93,23 +93,18 @@ def extract_gateway_coordinates(json_message):
             gateway_id = gateway.get('gateway_ids', {}).get('gateway_id')
             location = gateway.get('location', {})
             if gateway_id and location:
-                gateway_coordinates[gateway_id] = {
-                    "latitude": location['latitude'],
-                    "longitude": location['longitude']
-                }
-            elif gateway_id == "lora-m013":
-                gateway_coordinates[gateway_id] = {
-                    "latitude": "50.67299221831517",
-                    "longitude": "14.048330412098741",
-                    "location": "spsul"
-                }
+                gateway_coordinates["name"] = gateway_id
+                gateway_coordinates["latitude"] = location['latitude']
+                gateway_coordinates["longitude"] = location['longitude']
+
             elif gateway_id:
-                gateway_coordinates[gateway_id] = {}
+                gateway_coordinates["name"] = gateway_id
+                gateway_coordinates["latitude"] = ""
+                gateway_coordinates["longitude"] = ""
             elif location:
-                gateway_coordinates["unknown"] = {
-                    "latitude": location['latitude'],
-                    "longitude": location['longitude']
-                }
+                gateway_coordinates["name"] = "unknown"
+                gateway_coordinates["latitude"] = location['latitude']
+                gateway_coordinates["longitude"] = location['longitude']
 
         return gateway_coordinates
     except json.JSONDecodeError:
