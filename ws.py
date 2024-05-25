@@ -17,9 +17,10 @@ def on_connect(client, userdata, flags, rc):
 
 
 def on_message(client, userdata, msg):
-    msg.payload = msg.payload.decode()
-    coordinates = extract_gateway_coordinates(msg.payload, msg.topic)
-    asyncio.run(send_to_websockets(str(coordinates)))
+    if "ttndata" in msg.topic or "Bilina" in msg.topic or "vodomery/decin" in msg.topic:
+        msg.payload = msg.payload.decode()
+        coordinates = extract_gateway_coordinates(msg.payload, msg.topic)
+        asyncio.run(send_to_websockets(str(coordinates)))
 
 
 async def send_to_websockets(message):
@@ -35,11 +36,11 @@ async def send_to_websockets(message):
 def extract_gateway_coordinates(json_message, topic):
     try:
         data = json.loads(json_message)
-
+        # print(data)
         # Extracting gateway IDs and their corresponding coordinates
         gateway_coordinates = {}
         
-        if topic == "/ttndata":
+        if "/ttndata" in topic:
             for gateway in data.get('uplink_message', {}).get('rx_metadata', []):
                 gateway_id = gateway.get('gateway_ids', {}).get('gateway_id')
                 location = gateway.get('location', {})
@@ -50,20 +51,22 @@ def extract_gateway_coordinates(json_message, topic):
 
                 elif gateway_id:
                     gateway_coordinates["name"] = gateway_id
-                    gateway_coordinates["latitude"] = ""
-                    gateway_coordinates["longitude"] = ""
+                    gateway_coordinates["latitude"] = "50.673119610684594", 
+                    gateway_coordinates["longitude"] = "14.049129474739555"
                 elif location:
                     gateway_coordinates["name"] = "unknown"
                     gateway_coordinates["latitude"] = location['latitude']
                     gateway_coordinates["longitude"] = location['longitude']
         elif topic == "/vodomery/decin":
-            gateway_coordinates["name"] = "vodomery"
+            gateway_coordinates["name"] = "vodomery/decin"
             gateway_coordinates["latitude"] = "50.7783"
             gateway_coordinates["longitude"] = "14.2083"
         elif "/Bilina/" in topic:
             gateway_coordinates["name"] = "Bilina"
             gateway_coordinates["latitude"] = "50.545"
             gateway_coordinates["longitude"] = "13.775"
+        else:
+            return
         
 
         return gateway_coordinates
